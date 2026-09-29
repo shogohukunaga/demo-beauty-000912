@@ -1,0 +1,33 @@
+(()=>{'use strict';
+const body=document.body, reduced=matchMedia('(prefers-reduced-motion: reduce)'), toggle=document.querySelector('.motion-toggle');let manual=false;
+document.querySelectorAll('.line-reveal').forEach(el=>{[...el.children].forEach((span,i)=>{span.classList.add('mask');const line=document.createElement('span');line.className='line';line.style.setProperty('--i',i);while(span.firstChild)line.append(span.firstChild);span.append(line);});});
+const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('entered');else if(e.boundingClientRect.top>innerHeight+50)e.target.classList.remove('entered')}),{threshold:.08});
+document.querySelectorAll('.reveal,.line-reveal,.photo-window').forEach(el=>observer.observe(el));
+const field=document.querySelector('.droplet-field');for(let i=0;i<23;i++){const d=document.createElement('i');d.className='droplet';const size=15+(i*31%103);d.style.cssText=`width:${size}px;height:${size*1.08}px;left:${i*47%98}%;top:${i*157%1000}px;animation-delay:-${i%7}s;`;field.append(d)}
+let raf=0,lastY=scrollY;const header=document.querySelector('.header'),photos=[...document.querySelectorAll('.photo-window img')],hero=document.querySelector('.hero'),heroCopy=document.querySelector('.hero-content'),track=document.querySelector('.story-track'),storyItems=[...document.querySelectorAll('.story-item')],storyImages=[...document.querySelectorAll('.story-image')];
+const clamp=n=>Math.max(0,Math.min(1,n));
+function paint(){raf=0;header.classList.toggle('scrolled',scrollY>hero.offsetHeight-100);header.classList.toggle('show-header',scrollY<lastY-2||header.contains(document.activeElement));lastY=scrollY;
+if(!body.classList.contains('motion-on'))return;
+heroCopy.style.transform=innerWidth>=768?`translateY(${Math.min(scrollY*.2,180)}px)`:'none';
+photos.forEach(img=>{const r=img.parentElement.getBoundingClientRect();if(r.bottom>0&&r.top<innerHeight){const p=clamp((innerHeight-r.top)/(innerHeight+r.height))-.5;img.style.transform=`translateY(${p*r.height*.14}px) scale(1.16)`;}});
+if(innerWidth>=768){const r=track.getBoundingClientRect(),p=clamp((innerHeight*.16-r.top)/Math.max(1,r.height-innerHeight*.8)),active=p>=.5?1:0;storyItems.forEach((el,i)=>{el.classList.toggle('active',i===active);el.style.setProperty('--progress',clamp(p*2-i))});storyImages.forEach((el,i)=>el.classList.toggle('active',i===active));}}
+setInterval(()=>{if(body.classList.contains('motion-on')&&!document.hidden&&scrollY<hero.offsetHeight)document.querySelector('.hero-visual').classList.toggle('alt')},8500);
+function queue(){if(!raf)raf=requestAnimationFrame(paint)}
+function syncMotion(){const stopped=manual||reduced.matches;body.classList.toggle('motion-on',!stopped);body.classList.toggle('motion-off',stopped);document.documentElement.style.scrollBehavior=stopped?'auto':'';toggle.textContent=stopped?'動きを再開':'動きを止める';toggle.setAttribute('aria-pressed',String(stopped));if(reduced.matches){toggle.textContent='動き軽減中';toggle.disabled=true}else toggle.disabled=false;if(stopped)photos.forEach(img=>img.style.transform='');queue()}
+toggle.addEventListener('click',()=>{manual=!manual;syncMotion()});reduced.addEventListener('change',syncMotion);addEventListener('scroll',queue,{passive:true});addEventListener('resize',queue);syncMotion();
+const menu=document.querySelector('#navigation'),menuButton=document.querySelector('.menu-toggle'),main=document.querySelector('main'),footer=document.querySelector('footer');
+let menuOpen=false,closeTimer=0;
+const desktopNav=document.querySelector('.desktop-nav'),brand=document.querySelector('.header .logo');
+function finishClose(){if(menuOpen)return;menu.hidden=true;menu.classList.remove('is-closing');body.classList.remove('menu-open');main.inert=false;footer.inert=false;desktopNav.inert=false;brand.inert=false;toggle.inert=false;menuButton.focus({preventScroll:true});queue()}
+function setMenu(open){
+clearTimeout(closeTimer);menuOpen=open;menuButton.setAttribute('aria-expanded',String(open));menuButton.setAttribute('aria-label',open?'メニューを閉じる':'メニューを開く');
+if(open){menu.hidden=false;menu.classList.remove('is-closing');body.classList.add('menu-open');main.inert=true;footer.inert=true;desktopNav.inert=true;brand.inert=true;toggle.inert=true;menu.querySelector('a').focus({preventScroll:true})}
+else if(manual||reduced.matches)finishClose();else{menu.classList.add('is-closing');closeTimer=setTimeout(finishClose,270)}
+}
+menuButton.addEventListener('click',()=>setMenu(!menuOpen));
+menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const destination=document.querySelector(a.hash);setMenu(false);clearTimeout(closeTimer);finishClose();destination?.scrollIntoView({behavior:manual||reduced.matches?'instant':'smooth'});}));
+document.addEventListener('keydown',e=>{if(menuOpen){if(e.key==='Escape'){e.preventDefault();setMenu(false)}if(e.key==='Tab'){const items=[menuButton,...menu.querySelectorAll('a')];const index=items.indexOf(document.activeElement);e.preventDefault();items[(index+(e.shiftKey?-1:1)+items.length)%items.length].focus({preventScroll:true})}}});
+const content={facial:['フェイシャルケア','手のぬくもりを感じる、ゆったりしたケアをイメージしています。施術の前にはお話を伺い、その日の肌の状態やお好みを確認する流れです。施術内容・時間・料金は、実際のサロンに合わせてご案内する構成です。'],homecare:['ホームケア','洗顔や保湿など、毎日のスキンケアについて相談できるページのサンプルです。写真のボトルはイメージであり、特定の商品や効能を紹介・販売するものではありません。'],consultation:['スキンケア相談','普段のお手入れや気になることを伺う、カウンセリングの導線サンプルです。診断や治療を行う医療サービスの案内ではありません。'],relaxation:['リラクゼーション','落ち着いた空間でゆっくり過ごす時間を表現しています。写真は空間イメージです。実際の設備・コース・料金は掲載していません。'],first:['初めての方へ','ご相談、ケア内容のご案内、トリートメント、その後のお手入れのご提案。来店前に当日の流れを確認できるページのサンプルです。実際のご予約は受け付けていません。'],daily:['日々のケアに、ひと呼吸を。','洗面台の前で、少しだけ手を止めて深呼吸。自分のために使う時間も、毎日のケアのひとつに。肌のお手入れをテーマにした読みもののデザインサンプルです。'],contact:['ご予約・ご相談のサンプル','架空の企業情報を使用したデザインサンプルです。この画面では予約・お問い合わせ・個人情報の入力は受け付けていません。実在するサロンへの送信や発信は行われません。']};
+const dialog=document.querySelector('dialog');let opener=null;document.querySelectorAll('[data-detail]').forEach(button=>button.addEventListener('click',()=>{const item=content[button.dataset.detail];opener=button;document.querySelector('#detail-title').textContent=item[0];const p=document.createElement('p');p.textContent=item[1];document.querySelector('#detail-body').replaceChildren(p);dialog.showModal()}));
+document.querySelectorAll('.dialog-close,.dialog-done').forEach(button=>button.addEventListener('click',()=>dialog.close()));dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});dialog.addEventListener('close',()=>opener?.focus());
+})();
